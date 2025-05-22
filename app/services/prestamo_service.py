@@ -1,63 +1,81 @@
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.schemas.prestamo import PrestamoCreate, PrestamoOut
-from app.models.prestamo import PrestamoInDB
-from bson import ObjectId
-from datetime import datetime
+from bson import ObjectId, errors
+from fastapi import HTTPException, status
 
-MAX_PRESTAMOS_ACTIVOS = 3
+from app.schemas.prestamo import PrestamoCreate, PrestamoInDB
 
-async def create_prestamo(db: AsyncIOMotorDatabase, prestamo: PrestamoCreate) -> PrestamoOut:
-    # Verificar si el usuario ya tiene el máximo de préstamos activos
-    activos = await count_prestamos_usuario(db, prestamo.user_id, activos_only=True)
-    if activos >= MAX_PRESTAMOS_ACTIVOS:
-        raise ValueError("El usuario ha alcanzado el número máximo de préstamos activos.")
-
-    prestamo_dict = prestamo.dict()
-    prestamo_dict["devuelto"] = False
-    result = await db["prestamos"].insert_one(prestamo_dict)
-    doc = await db["prestamos"].find_one({"_id": result.inserted_id})
-    doc["id"] = str(doc["_id"])
-    return PrestamoOut(**doc)
-
-async def list_prestamos_usuario(db: AsyncIOMotorDatabase, user_id: str, activos_only: bool = False) -> list[PrestamoInDB]:
-    filtro: dict = {}
-    if user_id and user_id != "*":
-        filtro["user_id"] = user_id
-    if activos_only:
-        filtro["devuelto"] = False
-
-    cursor = db["prestamos"].find(filtro)
-    resultados: list[PrestamoInDB] = []
-    async for doc in cursor:
-        # 1) Convertimos ObjectId a string
-        doc["id"] = str(doc["_id"])
-        # 2) Eliminamos el campo _id para no pasarlo al modelo
-        doc.pop("_id", None)
-        resultados.append(PrestamoInDB(**doc))
-    return resultados
-
-async def count_prestamos_usuario(db: AsyncIOMotorDatabase, user_id: str, activos_only: bool = False) -> int:
-    # Si user_id está vacío o es comodín, no cuenta
-    if not user_id or user_id == "*":
-        return 0
-    filtro: dict = {"user_id": user_id}
-    if activos_only:
-        filtro["devuelto"] = False
-    return await db["prestamos"].count_documents(filtro)
-
-async def devolver_prestamo(db: AsyncIOMotorDatabase, prestamo_id: str) -> bool:
-    result = await db["prestamos"].update_one(
-        {"_id": ObjectId(prestamo_id), "devuelto": False},
-        {"$set": {"devuelto": True, "fecha_real_devolucion": datetime.utcnow()}}
-    )
-    return result.modified_count == 1
-
-async def get_prestamo(db: AsyncIOMotorDatabase, prestamo_id: str) -> PrestamoOut | None:
+async def create_prestamo(db, prestamo: PrestamoCreate) -> str:
     """
-    Recupera un préstamo por su ID.
+    Inserta un nuevo préstamo en la colección y retorna su ID como string.
     """
-    doc = await db["prestamos"].find_one({"_id": ObjectId(prestamo_id)})
+    data = prestamo.dict(by_alias=True)
+    data.setdefault("devuelto", False)
+    result = await db.prestamos.insert_one(data)
+    return str(result.inserted_id)
+
+async def get_prestamo(db, prestamo_id: str) -> PrestamoInDB | None:
+    """
+    Obtiene un único préstamo por su ID.
+    """
+    try:
+        oid = ObjectId(prestamo_id)
+    except errors.InvalidId:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"ID de préstamo inválido: {prestamo_id}"
+        )
+    doc = await db.prestamos.find_one({"_id": oid})
     if not doc:
         return None
-    doc["id"] = str(doc["_id"])
-    return PrestamoOut(**doc)
+    return PrestamoInDB(**doc)
+
+async def list_prestamos_usuario(
+    db,
+    user_id: str,
+    activos_only: bool = False
+) -> list[PrestamoInDB]:
+    """
+    Retorna una lista de préstamos para un usuario dado.
+
+    - Si user_id == "*", no filtra por usuario.
+    - Si activos_only es True, solo retorna aquellos con devuelto=False.
+    """
+    query: dict = {}
+    if user_id and user_id != "*":
+        query["user_id"] = user_id
+    if activos_only:
+        query["devuelto"] = False
+
+    cursor = db.prestamos.find(query).sort("fecha_prestamo", -1)
+    prestamos: list[PrestamoInDB] = []
+    async for doc in cursor:
+        prestamos.append(PrestamoInDB(**doc))
+    return prestamos
+
+async def count_prestamos_usuario(db, user_id: str) -> int:
+    """
+    Cuenta los préstamos activos (devuelto=False) de un usuario.
+    """
+    if not user_id:
+        return 0
+    return await db.prestamos.count_documents({
+        "user_id": user_id,
+        "devuelto": False
+    })
+
+async def devolver_prestamo(db, prestamo_id: str) -> bool:
+    """
+    Marca un préstamo como devuelto, si está activo.
+    """
+    try:
+        oid = ObjectId(prestamo_id)
+    except errors.InvalidId:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"ID de préstamo inválido: {prestamo_id}"
+        )
+
+    result = await db.prestamos.update_one(
+        {"_id": oid, "devuelto": False},
+        {"$set": {"devuelto": True}}
+    )
+    return result.modified_count == 1
