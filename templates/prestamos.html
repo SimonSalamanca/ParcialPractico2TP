@@ -42,7 +42,7 @@
       Devolver antes de: {{ p.fecha_devolucion }}<br>
       Estado: {{ p.devuelto and 'Devuelto' or 'Activo' }}<br>
       {% if not p.devuelto %}
-        <a href="/ui/prestamos/devolver/{{ p.id }}">Marcar devolución</a>
+        <a href="/ui/prestamos/devolver/{{ p.id }}?user_id={{ filtro.user_id }}">Marcar devolución</a>
       {% endif %}
     </li>
   {% endfor %}
