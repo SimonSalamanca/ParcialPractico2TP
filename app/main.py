@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 
 from app.core.config import settings
 from app.core.database import client
@@ -40,9 +41,15 @@ app.include_router(libro_router)
 app.include_router(prestamo_router)
 app.include_router(ui_router)
 
-@app.get("/", tags=["root"])
-async def read_root(request: Request):
+@app.get(
+    "/", 
+    response_class=HTMLResponse, 
+    tags=["root"], 
+    name="index"
+)
+async def index(request: Request):
     """
-    Endpoint raíz para verificar que la API está funcionando.
+    Página de inicio: renderiza index.html
     """
-    return {"message": "API de Biblioteca con MongoDB funcionando"}
+    return templates.TemplateResponse("index.html", {"request": request})
+

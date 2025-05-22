@@ -1,0 +1,38 @@
+/* Menú superior color salmón */
+#top-menu {
+  background-color: #FA8072; /* salmón */
+}
+
+/* Icono del toggler en mobile */
+#top-menu .navbar-toggler-icon {
+  filter: invert(1);
+}
+
+/* Hero de inicio */
+.inicio-hero {
+  margin-top: 3rem;
+  padding: 4rem 2rem;
+  background-color: #fff5f3;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1);
+}
+
+/* Títulos y texto del hero */
+.inicio-hero h1 {
+  color: #333;
+}
+.inicio-hero p {
+  color: #555;
+}
+
+/* Botones semiredondos (overrides por si acaso) */
+.btn.rounded-pill {
+  border-radius: 2rem !important;
+  padding: 0.5rem 1.5rem;
+  font-weight: 500;
+}
+
+/* Asegura contraste del navbar brand */
+.navbar-brand {
+  font-size: 1.25rem;
+}

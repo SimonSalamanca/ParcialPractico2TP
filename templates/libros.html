@@ -1,34 +1,76 @@
 {% extends "base.html" %}
-{% block title %}Libros{% endblock %}
+{% block title %}Libros – Mi Biblioteca{% endblock %}
+
 {% block content %}
-<h1>Gestión de Libros</h1>
+  <div class="d-flex align-items-center mb-4">
+    <h2 class="me-auto">Gestión de Libros</h2>
+    <a href="{{ url_for('index') }}" class="btn btn-link">← Volver a Inicio</a>
+  </div>
 
-<h2>Buscar por ISBN</h2>
-<form method="get" action="/ui/libros">
-  <label>ISBN:
-    <input type="text" name="isbn" value="{{ isbn or '' }}">
-  </label>
-  <button type="submit">Buscar</button>
-</form>
+  <!-- Formulario de búsqueda/creación -->
+  <div class="row g-4 mb-5">
+    <div class="col-md-6">
+      <h5>Buscar por ISBN</h5>
+      <form method="get" action="{{ url_for('ui_save_libros') }}" class="input-group">
+        <input type="text" name="isbn" class="form-control" placeholder="ISBN" value="{{ isbn or '' }}">
+        <button class="btn btn-primary" type="submit">Buscar</button>
+      </form>
+    </div>
+    <div class="col-md-6">
+      <h5>Crear / Actualizar Libro</h5>
+      <form method="get" action="{{ url_for('ui_save_libro') }}" class="input-group">
+        <input type="hidden" name="id" value="{{ libro.id or '' }}">
+        <div class="mb-2">
+          <label class="form-label">Título</label>
+          <input name="titulo" class="form-control" value="{{ libro.titulo or '' }}">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Autor</label>
+          <input name="autor" class="form-control" value="{{ libro.autor or '' }}">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">ISBN</label>
+          <input name="isbn" class="form-control" value="{{ libro.isbn or '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Páginas</label>
+          <input name="paginas" class="form-control" value="{{ libro.paginas or '' }}">
+        </div>
+        <button class="btn btn-success w-100">{{ libro and 'Actualizar' or 'Crear' }}</button>
+      </form>
+    </div>
+  </div>
 
-<h2>Crear / Actualizar Libro</h2>
-<form method="post" action="/ui/libros/save">
-  <input type="hidden" name="id" value="{{ libro.id or '' }}">
-  <label>Título: <input name="titulo" value="{{ libro.titulo or '' }}"></label><br>
-  <label>Autor:  <input name="autor"  value="{{ libro.autor or '' }}"></label><br>
-  <label>ISBN:   <input name="isbn"   value="{{ libro.isbn or '' }}"></label><br>
-  <label>Páginas:<input name="paginas" value="{{ libro.paginas or '' }}"></label><br>
-  <button type="submit">{{ libro and 'Actualizar' or 'Crear' }}</button>
-</form>
-
-<h2>Listado de Libros</h2>
-<ul>
-  {% for b in libros %}
-    <li>
-      {{ b.titulo }} ({{ b.id }})
-      — <a href="/ui/libros/edit/{{ b.id }}">Editar</a>
-      — <a href="/ui/libros/delete/{{ b.id }}">Borrar</a>
-    </li>
-  {% endfor %}
-</ul>
+  <!-- Listado de libros -->
+  <h5>Listado de Libros</h5>
+  <div class="table-responsive mb-4">
+    <table class="table table-striped table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Título</th>
+          <th>Autor</th>
+          <th>ISBN</th>
+          <th>Páginas</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in libros %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ b.titulo }}</td>
+          <td>{{ b.autor }}</td>
+          <td>{{ b.isbn }}</td>
+          <td>{{ b.paginas }}</td>
+          <td>
+            <a href="{{ url_for('ui_edit_libro', id=b.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+            <a href="{{ url_for('ui_delete_libro', id=b.id) }}" class="btn btn-sm btn-outline-danger">Borrar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}
+

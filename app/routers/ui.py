@@ -58,7 +58,7 @@ async def ui_edit_libro(
         "filtro": {"isbn": ""}
     })
 
-@router.post("/libros/save")
+@router.post("/libros/save", name="ui_save_libros")
 async def ui_save_libro(
     id: str = Form(""),
     titulo: str = Form(...),

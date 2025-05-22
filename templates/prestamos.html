@@ -1,64 +1,88 @@
 {% extends "base.html" %}
-{% block title %}Préstamos{% endblock %}
+{% block title %}Préstamos – Mi Biblioteca{% endblock %}
+
 {% block content %}
-<h1>Gestión de Préstamos</h1>
+  <div class="d-flex align-items-center mb-4">
+    <h2 class="me-auto">Gestión de Préstamos</h2>
+    <a href="{{ url_for('index') }}" class="btn btn-link">← Volver a Inicio</a>
+  </div>
 
-<h2>Crear Préstamo</h2>
-<form method="post" action="/ui/prestamos/save">
-  <label>User ID:
-    <input name="user_id" required>
-  </label><br>
-  <label>Libro ID:
-    <input name="libro_id" required>
-  </label><br>
-  <label>Fecha Préstamo:
-    <input type="datetime-local" name="fecha_prestamo" required>
-  </label><br>
-  <label>Fecha Devolución:
-    <input type="datetime-local" name="fecha_devolucion" required>
-  </label><br>
-  <button type="submit">Prestar</button>
-</form>
+  <!-- Formulario de nuevo préstamo -->
+  <div class="card p-3 mb-4 bg-white shadow-sm">
+    <h5>Crear Préstamo</h5>
+    <form method="post" action="{{ url_for('ui_prestamos_save') }}" class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">User ID</label>
+        <input name="user_id" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Libro ID</label>
+        <input name="libro_id" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Fecha Préstamo</label>
+        <input type="datetime-local" name="fecha_prestamo" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Fecha Devolución</label>
+        <input type="datetime-local" name="fecha_devolucion" class="form-control" required>
+      </div>
+      <div class="col-12">
+        <button class="btn btn-success">Prestar</button>
+      </div>
+    </form>
+  </div>
 
-<h2>Filtrar Préstamos</h2>
-<form method="get" action="/ui/prestamos">
-  <label>Usuario:
-    <input name="user_id" value="{{ filtro.user_id or '' }}">
-  </label>
-  <label>
-    <input type="checkbox" name="activos_only" value="true" {% if filtro.activos_only %} checked {% endif %}>
-    Solo activos
-  </label>
-  <button type="submit">Filtrar</button>
-</form>
+  <!-- Filtro de préstamos -->
+  <div class="card p-3 mb-4 bg-white shadow-sm">
+    <h5>Filtrar Préstamos</h5>
+    <form method="get" action="{{ url_for('ui_save_prestamos') }}" class="row g-3 align-items-center">
+      <div class="col-auto">
+        <label class="form-label">Usuario</label>
+        <input name="user_id" class="form-control" value="{{ filtro.user_id or '' }}">
+      </div>
+      <div class="col-auto form-check mt-4">
+        <input type="checkbox" name="activos_only" class="form-check-input" value="true"
+               id="activos_only" {% if filtro.activos_only %} checked {% endif %}>
+        <label for="activos_only" class="form-check-label">Solo activos</label>
+      </div>
+      <div class="col-auto mt-4">
+        <button class="btn btn-primary">Filtrar</button>
+      </div>
+    </form>
+  </div>
 
-<h2>Préstamos</h2>
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Código Usuario</th>
-      <th>Código Libro</th>
-      <th>Fecha Préstamo</th>
-      <th>Fecha Devolución</th>
-      <th>Estado</th>
-      <th>Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for p in prestamos %}
-    <tr>
-      <td>{{ p.user_id }}</td>
-      <td>{{ p.libro_id }}</td>
-      <td>{{ p.fecha_prestamo }}</td>
-      <td>{{ p.fecha_devolucion }}</td>
-      <td>{{ 'Devuelto' if p.devuelto else 'Activo' }}</td>
-      <td>
-        {% if not p.devuelto %}
-        <a href="{{ request.url_for('ui_devolver', id=p.id) }}" class="btn btn-warning btn-sm">Marcar devolución</a>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+  <!-- Listado de préstamos -->
+  <h5>Préstamos</h5>
+  <div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>User ID</th>
+          <th>Libro ID</th>
+          <th>Préstamo</th>
+          <th>Devolución</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in prestamos %}
+        <tr>
+          <td>{{ p.user_id }}</td>
+          <td>{{ p.libro_id }}</td>
+          <td>{{ p.fecha_prestamo }}</td>
+          <td>{{ p.fecha_devolucion }}</td>
+          <td>{{ 'Devuelto' if p.devuelto else 'Activo' }}</td>
+          <td>
+            {% if not p.devuelto %}
+            <a href="{{ url_for('ui_devolver', id=p.id) }}"
+               class="btn btn-warning btn-sm">Marcar devolución</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}
