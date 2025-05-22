@@ -2,52 +2,82 @@
 {% block title %}Libros – Mi Biblioteca{% endblock %}
 
 {% block content %}
-  <div class="d-flex align-items-center mb-4">
-    <h2 class="me-auto">Gestión de Libros</h2>
-    <a href="{{ url_for('index') }}" class="btn btn-link">← Volver a Inicio</a>
-  </div>
+  <h2>Gestión de Libros</h2>
 
-  <!-- Formulario de búsqueda/creación -->
   <div class="row g-4 mb-5">
+    <!-- 1) Formulario de búsqueda por ISBN (GET /ui/libros?isbn=...) -->
     <div class="col-md-6">
       <h5>Buscar por ISBN</h5>
-      <form method="get" action="{{ url_for('ui_save_libros') }}" class="input-group">
-        <input type="text" name="isbn" class="form-control" placeholder="ISBN" value="{{ isbn or '' }}">
-        <button class="btn btn-primary" type="submit">Buscar</button>
+      <form method="get" action="{{ url_for('ui_libros') }}" class="input-group">
+        <input
+          type="text"
+          name="isbn"
+          class="form-control"
+          placeholder="ISBN"
+          value="{{ filtro.isbn or '' }}"
+        >
+        <button type="submit" class="btn btn-primary">Buscar</button>
       </form>
     </div>
+
+    <!-- 2) Formulario Creación / Actualización (POST /ui/libros/save) -->
     <div class="col-md-6">
       <h5>Crear / Actualizar Libro</h5>
-      <form method="get" action="{{ url_for('ui_save_libro') }}" class="input-group">
-        <input type="hidden" name="id" value="{{ libro.id or '' }}">
+      <form method="post" action="{{ url_for('ui_save_libros') }}" class="input-group">
+        <!-- Hidden: solo si estamos editando -->
+        <input type="hidden" name="id" value="{{ libro.get('id', '') }}">
+
         <div class="mb-2">
           <label class="form-label">Título</label>
-          <input name="titulo" class="form-control" value="{{ libro.titulo or '' }}">
+          <input
+            type="text"
+            name="titulo"
+            class="form-control"
+            value="{{ libro.get('titulo', '') }}"
+            required
+          >
         </div>
         <div class="mb-2">
           <label class="form-label">Autor</label>
-          <input name="autor" class="form-control" value="{{ libro.autor or '' }}">
+          <input
+            type="text"
+            name="autor"
+            class="form-control"
+            value="{{ libro.get('autor', '') }}"
+            required
+          >
         </div>
         <div class="mb-2">
           <label class="form-label">ISBN</label>
-          <input name="isbn" class="form-control" value="{{ libro.isbn or '' }}">
+          <input
+            type="text"
+            name="isbn"
+            class="form-control"
+            value="{{ libro.get('isbn', '') }}"
+            required
+          >
         </div>
-        <div class="mb-3">
+        <div class="mb-2">
           <label class="form-label">Páginas</label>
-          <input name="paginas" class="form-control" value="{{ libro.paginas or '' }}">
+          <input
+            type="number"
+            name="paginas"
+            class="form-control"
+            value="{{ libro.get('paginas', '') if libro.get('paginas') else '' }}"
+            required
+          >
         </div>
-        <button class="btn btn-success w-100">{{ libro and 'Actualizar' or 'Crear' }}</button>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
       </form>
     </div>
   </div>
 
-  <!-- Listado de libros -->
-  <h5>Listado de Libros</h5>
-  <div class="table-responsive mb-4">
-    <table class="table table-striped table-hover align-middle">
-      <thead class="table-light">
+  <!-- 3) Tabla con listado de libros y botones “Editar” / “Borrar” -->
+  {% if libros %}
+    <table class="table table-striped">
+      <thead>
         <tr>
-          <th>#</th>
           <th>Título</th>
           <th>Autor</th>
           <th>ISBN</th>
@@ -56,21 +86,27 @@
         </tr>
       </thead>
       <tbody>
-        {% for b in libros %}
-        <tr>
-          <td>{{ loop.index }}</td>
-          <td>{{ b.titulo }}</td>
-          <td>{{ b.autor }}</td>
-          <td>{{ b.isbn }}</td>
-          <td>{{ b.paginas }}</td>
-          <td>
-            <a href="{{ url_for('ui_edit_libro', id=b.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
-            <a href="{{ url_for('ui_delete_libro', id=b.id) }}" class="btn btn-sm btn-outline-danger">Borrar</a>
-          </td>
-        </tr>
+        {% for lib in libros %}
+          <tr>
+            <td>{{ lib.titulo }}</td>
+            <td>{{ lib.autor }}</td>
+            <td>{{ lib.isbn }}</td>
+            <td>{{ lib.paginas }}</td>
+            <td>
+              <!-- “Editar” apunta a /ui/libros/edit/{{ lib.id }} -->
+              <a
+                href="{{ url_for('ui_edit_libro', id=lib.id) }}"
+                class="btn btn-sm btn-warning me-1"
+              >
+                Editar
+              </a>
+              <!-- “Borrar” apunta a /ui/libros/delete/{{ lib.id }}?isbn=<filtro> -->
+              +<a href="{{ url_for('ui_delete_libro', id=lib.id) }}?isbn={{ filtro.isbn }}" class="btn btn-sm btn-danger">Borrar</a>
+
+            </td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
+  {% endif %}
 {% endblock %}
-

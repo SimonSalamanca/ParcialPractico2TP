@@ -52,4 +52,15 @@ async def index(request: Request):
     Página de inicio: renderiza index.html
     """
     return templates.TemplateResponse("index.html", {"request": request})
+if __name__ == "__main__":
+    import uvicorn
 
+    # Mostrar en consola las rutas disponibles
+    print("==== RUTAS REGISTRADAS ====")
+    for route in app.router.routes:
+        # Solo imprimimos aquéllas que tengan nombre
+        if getattr(route, "name", None):
+            print(f"name={route.name:<30}  path={route.path}")
+    print("============================")
+
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

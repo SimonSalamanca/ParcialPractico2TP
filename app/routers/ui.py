@@ -23,27 +23,25 @@ router = APIRouter(
     tags=["ui"],
     responses={404: {"description": "Not found"}}
 )
-
-# Configuración de plantillas
 templates = Jinja2Templates(directory="templates")
 
-# Página de Libros con búsqueda por ISBN
-@router.get("/libros", response_class=HTMLResponse)
+# Configuración de plantillas
+@router.get("/libros", name="ui_libros", response_class=HTMLResponse)
 async def ui_libros(
     request: Request,
     isbn: str = Query("", description="Buscar por ISBN"),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
-    libros = await list_libros(db, isbn_filter=isbn or None)
+    libros = await list_libros(db, isbn_filter=(isbn or None))
     filtro = {"isbn": isbn}
     return templates.TemplateResponse("libros.html", {
         "request": request,
         "libros": libros,
-        "libro": {},
+        "libro": {},        # formulario vacío para crear
         "filtro": filtro
     })
 
-@router.get("/libros/edit/{id}", response_class=HTMLResponse)
+@router.get("/libros/edit/{id}", name="ui_edit_libro", response_class=HTMLResponse)
 async def ui_edit_libro(
     request: Request,
     id: str,
@@ -54,7 +52,7 @@ async def ui_edit_libro(
     return templates.TemplateResponse("libros.html", {
         "request": request,
         "libros": libros,
-        "libro": libro,
+        "libro": libro,     # formulario precargado con datos
         "filtro": {"isbn": ""}
     })
 
@@ -74,7 +72,8 @@ async def ui_save_libro(
         await create_libro(db, data)
     return RedirectResponse(url=f"/ui/libros?isbn={isbn}", status_code=303)
 
-@router.get("/libros/delete/{id}")
+
+@router.get("/libros/delete/{id}", name="ui_delete_libro")
 async def ui_delete_libro(
     id: str,
     isbn: str = Query(""),
@@ -84,7 +83,7 @@ async def ui_delete_libro(
     return RedirectResponse(url=f"/ui/libros?isbn={isbn}", status_code=303)
 
 # Página de Préstamos
-@router.get("/prestamos", response_class=HTMLResponse)
+@router.get("/prestamos", name="ui_prestamos", response_class=HTMLResponse)
 async def ui_prestamos(
     request: Request,
     user_id: str = Query("", description="Filtrar por usuario"),
@@ -93,22 +92,24 @@ async def ui_prestamos(
 ):
     raw_docs = await list_prestamos_usuario(
         db,
-        user_id=user_id or "*",
+        user_id=user_id or "*",         
         activos_only=activos_only
     )
     prestamos = []
     for d in raw_docs:
+        # Convertir ObjectId a str para Jinja
         d["_id"] = str(d["_id"])
         d["id"] = d["_id"]
         prestamos.append(d)
 
+    filtro = {"user_id": user_id, "activos_only": activos_only}
     return templates.TemplateResponse("prestamos.html", {
         "request": request,
         "prestamos": prestamos,
-        "filtro": {"user_id": user_id, "activos_only": activos_only}
+        "filtro": filtro
     })
 
-@router.post("/prestamos/save")
+@router.post("/prestamos/save", name="ui_save_prestamo")
 async def ui_save_prestamo(
     user_id: str = Form(...),
     libro_id: str = Form(...),
@@ -116,18 +117,22 @@ async def ui_save_prestamo(
     fecha_devolucion: str = Form(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
+    # Añadir sufijo “Z” para marcar UTC, según tu esquema
     await create_prestamo(db, PrestamoCreate(
         user_id=user_id,
         libro_id=libro_id,
         fecha_prestamo=fecha_prestamo + "Z",
         fecha_devolucion=fecha_devolucion + "Z"
     ))
+    # Redirigir a la misma lista, filtrando por user_id
     return RedirectResponse(url=f"/ui/prestamos?user_id={user_id}", status_code=303)
 
-@router.get("/prestamos/devolver/{id}")
+
+@router.get("/prestamos/devolver/{id}", name="ui_devolver")
 async def ui_devolver(
     id: str,
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     await devolver_prestamo(db, id)
+    # Al devolver, solo recargamos sin filtro (o podrías mantener uno fijo)
     return RedirectResponse(url="/ui/prestamos", status_code=303)
