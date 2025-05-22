@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+psycopg[binary]
+pydantic
+alembic
+
+motor                       # driver asíncrono oficial para MongoDB :contentReference[oaicite:3]{index=3}

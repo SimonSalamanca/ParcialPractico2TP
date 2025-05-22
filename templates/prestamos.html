@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Préstamos{% endblock %}
+{% block content %}
+<h1>Gestión de Préstamos</h1>
+
+<h2>Crear Préstamo</h2>
+<form method="post" action="/ui/prestamos/save">
+  <label>User ID:
+    <input name="user_id" required>
+  </label><br>
+  <label>Libro ID:
+    <input name="libro_id" required>
+  </label><br>
+  <label>Fecha Préstamo:
+    <input type="datetime-local" name="fecha_prestamo" required>
+  </label><br>
+  <label>Fecha Devolución:
+    <input type="datetime-local" name="fecha_devolucion" required>
+  </label><br>
+  <button type="submit">Prestar</button>
+</form>
+
+<h2>Filtrar Préstamos</h2>
+<form method="get" action="/ui/prestamos">
+  <label>Usuario:
+    <input name="user_id" value="{{ filtro.user_id or '' }}">
+  </label>
+  <label>
+    <input type="checkbox" name="activos_only" value="true"
+      {% if filtro.activos_only %} checked {% endif %}>
+    Solo activos
+  </label>
+  <button type="submit">Filtrar</button>
+</form>
+
+<h2>Préstamos</h2>
+<ul>
+  {% for p in prestamos %}
+    <li>
+      <strong>{{ p.user_id }}</strong> – Libro: {{ p.libro_id }}<br>
+      Prestado: {{ p.fecha_prestamo }}<br>
+      Devolver antes de: {{ p.fecha_devolucion }}<br>
+      Estado: {{ p.devuelto and 'Devuelto' or 'Activo' }}<br>
+      {% if not p.devuelto %}
+        <a href="/ui/prestamos/devolver/{{ p.id }}">Marcar devolución</a>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}

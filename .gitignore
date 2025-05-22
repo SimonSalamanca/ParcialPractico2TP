@@ -1,0 +1,17 @@
+# Entornos virtuales
+.venv/
+venv/
+
+# Variables de entorno
+.env
+
+# Editor settings
+.vscode/
+
+# Cachés y temporales
+__pycache__/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
