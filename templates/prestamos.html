@@ -26,49 +26,39 @@
     <input name="user_id" value="{{ filtro.user_id or '' }}">
   </label>
   <label>
-    <input type="checkbox" name="activos_only" value="true"
-      {% if filtro.activos_only %} checked {% endif %}>
-    Solo activos
-  </label>
-  <button type="submit">Filtrar</button>
-</form>
-
-<label>Fecha Préstamo:
-    <input type="datetime-local" name="fecha_prestamo" required>
-  </label><br>
-  <label>Fecha Devolución:
-    <input type="datetime-local" name="fecha_devolucion" required>
-  </label><br>
-  <button type="submit">Prestar</button>
-</form>
-
-<h2>Filtrar Préstamos</h2>
-<form method="get" action="/ui/prestamos">
-  <label>Usuario:
-    <input name="user_id" value="{{ filtro.user_id or '' }}">
-  </label>
-  <label>
-    <input type="checkbox" name="activos_only" value="true"
-      {% if filtro.activos_only %} checked {% endif %}>
+    <input type="checkbox" name="activos_only" value="true" {% if filtro.activos_only %} checked {% endif %}>
     Solo activos
   </label>
   <button type="submit">Filtrar</button>
 </form>
 
 <h2>Préstamos</h2>
-<ul>
-  {% for p in prestamos %}
-    <li>
-      <strong>{{ p.user_id }}</strong> – Libro: {{ p.libro_id }}<br>
-      Prestado: {{ p.fecha_prestamo }}<br>
-      Devolver antes de: {{ p.fecha_devolucion }}<br>
-      Estado: {{ p.devuelto and 'Devuelto' or 'Activo' }}<br>
-      {% if not p.devuelto %}
-        <a href="/ui/prestamos/devolver/{{ p.id }}">Marcar devolución</a>
-      {% endif %}
-    </li>
-  {% endfor %}
-</ul>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Código Usuario</th>
+      <th>Código Libro</th>
+      <th>Fecha Préstamo</th>
+      <th>Fecha Devolución</th>
+      <th>Estado</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in prestamos %}
+    <tr>
+      <td>{{ p.user_id }}</td>
+      <td>{{ p.libro_id }}</td>
+      <td>{{ p.fecha_prestamo }}</td>
+      <td>{{ p.fecha_devolucion }}</td>
+      <td>{{ 'Devuelto' if p.devuelto else 'Activo' }}</td>
+      <td>
+        {% if not p.devuelto %}
+        <a href="{{ request.url_for('ui_devolver', id=p.id) }}" class="btn btn-warning btn-sm">Marcar devolución</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
-
-

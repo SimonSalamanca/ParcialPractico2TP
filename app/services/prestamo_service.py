@@ -1,81 +1,56 @@
-from bson import ObjectId, errors
-from fastapi import HTTPException, status
 
-from app.schemas.prestamo import PrestamoCreate, PrestamoInDB
+# File: app/services/prestamo_service.py
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from bson import ObjectId
+from datetime import datetime
+from typing import List, Union
 
-async def create_prestamo(db, prestamo: PrestamoCreate) -> str:
-    """
-    Inserta un nuevo préstamo en la colección y retorna su ID como string.
-    """
-    data = prestamo.dict(by_alias=True)
-    data.setdefault("devuelto", False)
+from app.schemas.prestamo import PrestamoCreate, PrestamoInDB, PrestamoOut
+
+async def create_prestamo(db: AsyncIOMotorDatabase, prestamo: PrestamoCreate) -> dict:
+    data = prestamo.model_dump()
+    data['fecha_real_devolucion'] = None
+    data['devuelto'] = False
     result = await db.prestamos.insert_one(data)
-    return str(result.inserted_id)
+    return await get_prestamo(db, str(result.inserted_id))
 
-async def get_prestamo(db, prestamo_id: str) -> PrestamoInDB | None:
-    """
-    Obtiene un único préstamo por su ID.
-    """
-    try:
-        oid = ObjectId(prestamo_id)
-    except errors.InvalidId:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"ID de préstamo inválido: {prestamo_id}"
-        )
-    doc = await db.prestamos.find_one({"_id": oid})
+async def get_prestamo(db: AsyncIOMotorDatabase, id: str) -> Union[PrestamoOut, None]:
+    doc = await db.prestamos.find_one({'_id': ObjectId(id)})
     if not doc:
         return None
-    return PrestamoInDB(**doc)
+    # Convert ObjectId to str for id field
+    doc['_id'] = str(doc['_id'])
+    return PrestamoOut(**doc)
 
 async def list_prestamos_usuario(
-    db,
+    db: AsyncIOMotorDatabase,
     user_id: str,
     activos_only: bool = False
-) -> list[PrestamoInDB]:
-    """
-    Retorna una lista de préstamos para un usuario dado.
-
-    - Si user_id == "*", no filtra por usuario.
-    - Si activos_only es True, solo retorna aquellos con devuelto=False.
-    """
-    query: dict = {}
-    if user_id and user_id != "*":
-        query["user_id"] = user_id
+) -> List[dict]:
+    # Build query
+    query = {} if user_id == '*' else {'user_id': user_id}
     if activos_only:
-        query["devuelto"] = False
+        query['devuelto'] = False
+    # Fetch raw documents
+    docs = await db.prestamos.find(query).to_list(length=None)
+    # Convert ObjectId to str
+    for doc in docs:
+        doc['_id'] = str(doc['_id'])
+    return docs
 
-    cursor = db.prestamos.find(query).sort("fecha_prestamo", -1)
-    prestamos: list[PrestamoInDB] = []
-    async for doc in cursor:
-        prestamos.append(PrestamoInDB(**doc))
-    return prestamos
-
-async def count_prestamos_usuario(db, user_id: str) -> int:
-    """
-    Cuenta los préstamos activos (devuelto=False) de un usuario.
-    """
-    if not user_id:
-        return 0
-    return await db.prestamos.count_documents({
-        "user_id": user_id,
-        "devuelto": False
-    })
-
-async def devolver_prestamo(db, prestamo_id: str) -> bool:
-    """
-    Marca un préstamo como devuelto, si está activo.
-    """
-    try:
-        oid = ObjectId(prestamo_id)
-    except errors.InvalidId:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"ID de préstamo inválido: {prestamo_id}"
-        )
-
-    result = await db.prestamos.update_one(
-        {"_id": oid, "devuelto": False},
-        {"$set": {"devuelto": True}}
+async def devolver_prestamo(db: AsyncIOMotorDatabase, id: str) -> Union[PrestamoOut, None]:
+    # Mark as returned
+    update = {
+        '$set': {'devuelto': True, 'fecha_real_devolucion': datetime.utcnow()}
+    }
+    result = await db.prestamos.find_one_and_update(
+        {'_id': ObjectId(id), 'devuelto': False},
+        update,
+        return_document=True
     )
-    return result.modified_count == 1
+    if not result:
+        return None
+    # Convert ObjectId to str
+    result['_id'] = str(result['_id'])
+    return PrestamoOut(**result)
+

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Inicio{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="display-4">Bienvenido a Mi Biblioteca</h1>
+  <p class="lead">Gestiona tus libros y préstamos de forma sencilla.</p>
+  <p>
+    <a href="{{ url_for('ui_libros') }}" class="btn btn-primary btn-lg me-2">Ver Libros</a>
+    <a href="{{ url_for('ui_prestamos') }}" class="btn btn-secondary btn-lg">Ver Préstamos</a>
+  </p>
+</div>
+{% endblock %}

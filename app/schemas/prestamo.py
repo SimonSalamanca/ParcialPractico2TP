@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict
+
 
 
 class PrestamoBase(BaseModel):
@@ -18,13 +20,14 @@ class PrestamoCreate(PrestamoBase):
 
 
 class PrestamoInDB(PrestamoBase):
-    id: Optional[str] = Field(default=None, example="650b2c3d4e5f678901234567")
-    devuelto: bool = Field(default=False)
-    fecha_real_devolucion: Optional[datetime] = Field(default=None)
+    id: Optional[str] = Field(None, alias="_id", example="650b2c3d4e5f678901234567")
+    devuelto: bool = Field(False, description="¿Ya fue devuelto?")
+    fecha_real_devolucion: Optional[datetime] = Field(None)
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )
 
 
 class PrestamoOut(PrestamoInDB):
